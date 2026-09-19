@@ -37,7 +37,7 @@ import { ToastService } from '../shared/toast.service';
           ><ng-container matColumnDef="created"
             ><th mat-header-cell *matHeaderCellDef>Created Date</th>
             <td mat-cell *matCellDef="let c">
-              {{ c.createdAt | date: 'dd MMM yyyy' }}
+              {{ c.createdAt | date: 'dd MMM yyyy' : 'Asia/Kolkata' }}
             </td></ng-container
           ><ng-container matColumnDef="actions"
             ><th mat-header-cell *matHeaderCellDef>Actions</th>

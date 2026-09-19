@@ -52,9 +52,7 @@ import {
             <mat-icon>add</mat-icon>
             Add Question
           </button>
-          <a mat-stroked-button routerLink="/import">
-            Import Questions
-          </a>
+          <a mat-stroked-button routerLink="/import"> Import Questions </a>
         </div>
       </div>
 
@@ -177,9 +175,7 @@ import {
 
           <!-- Answer Source -->
           <ng-container matColumnDef="answerSource">
-            <th mat-header-cell *matHeaderCellDef mat-sort-header="answerSource">
-              Answer Source
-            </th>
+            <th mat-header-cell *matHeaderCellDef mat-sort-header="answerSource">Answer Source</th>
 
             <td mat-cell *matCellDef="let q">
               <a
@@ -223,7 +219,7 @@ import {
             <th mat-header-cell *matHeaderCellDef mat-sort-header="updatedAt">Updated At</th>
 
             <td mat-cell *matCellDef="let q">
-              {{ q.updatedAt | date: 'dd MMM yyyy, HH:mm' }}
+              {{ q.updatedAt | date: 'dd MMM yyyy, h:mm a' : 'Asia/Kolkata' }}
             </td>
           </ng-container>
 
@@ -691,24 +687,23 @@ export class QuestionBankComponent implements OnInit {
         return;
       }
 
-      this.api.updateQuestion(q.id, this.payloadFromResult(result))
-        .subscribe({
-          next: (response) => {
-            /*
-             * Replace the row with the latest
-             * backend response.
-             */
-            Object.assign(q, response);
+      this.api.updateQuestion(q.id, this.payloadFromResult(result)).subscribe({
+        next: (response) => {
+          /*
+           * Replace the row with the latest
+           * backend response.
+           */
+          Object.assign(q, response);
 
-            this.toast.show('Question updated successfully');
-          },
+          this.toast.show('Question updated successfully');
+        },
 
-          error: (error) => {
-            console.error('Failed to update question', error);
+        error: (error) => {
+          console.error('Failed to update question', error);
 
-            this.toast.show(error?.error?.message || 'Failed to update question');
-          },
-        });
+          this.toast.show(error?.error?.message || 'Failed to update question');
+        },
+      });
     });
   }
 

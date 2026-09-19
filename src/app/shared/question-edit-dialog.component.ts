@@ -1,9 +1,5 @@
 import { Component, Inject } from '@angular/core';
-import {
-  MAT_DIALOG_DATA,
-  MatDialogRef,
-  MatDialogModule,
-} from '@angular/material/dialog';
+import { MAT_DIALOG_DATA, MatDialogRef, MatDialogModule } from '@angular/material/dialog';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
@@ -62,10 +58,7 @@ export interface QuestionEditResult {
       <div class="form-grid">
         <mat-form-field appearance="outline" class="full-width">
           <mat-label>Category</mat-label>
-          <mat-select
-            [(ngModel)]="form.categoryId"
-            (selectionChange)="categoryChanged()"
-          >
+          <mat-select [(ngModel)]="form.categoryId" (selectionChange)="categoryChanged()">
             <mat-option *ngFor="let category of categories" [value]="category.id">
               {{ category.name }}
             </mat-option>
@@ -139,7 +132,11 @@ export interface QuestionEditResult {
       <div class="form-grid">
         <mat-form-field appearance="outline">
           <mat-label>Question Source</mat-label>
-          <input matInput [(ngModel)]="form.questionSource" placeholder="Interview / LeetCode / etc." />
+          <input
+            matInput
+            [(ngModel)]="form.questionSource"
+            placeholder="Interview / LeetCode / etc."
+          />
         </mat-form-field>
 
         <mat-form-field appearance="outline">
@@ -190,7 +187,13 @@ export interface QuestionEditResult {
 
     <mat-dialog-actions align="end" class="edit-actions">
       <button mat-button type="button" (click)="cancel()">Cancel</button>
-      <button mat-flat-button type="button" class="save-button" [disabled]="saving" (click)="save()">
+      <button
+        mat-flat-button
+        type="button"
+        class="save-button"
+        [disabled]="saving"
+        (click)="save()"
+      >
         <mat-icon>{{ data.mode === 'create' ? 'add' : 'save' }}</mat-icon>
         {{ data.mode === 'create' ? 'Add Question' : 'Save Changes' }}
       </button>
@@ -338,8 +341,7 @@ export class QuestionEditDialogComponent {
 
           const subName = this.newSubcategoryName.trim();
           const needsNewSub =
-            subName &&
-            (creatingCategory || this.form.subcategoryId === CREATE_NEW_ID);
+            subName && (creatingCategory || this.form.subcategoryId === CREATE_NEW_ID);
 
           if (needsNewSub) {
             return this.api.createSubcategory(category.id, subName).pipe(

@@ -109,7 +109,9 @@ import { CREATE_NEW_ID } from '../shared/question-edit-dialog.component';
 
             <mat-form-field
               appearance="outline"
-              *ngIf="categoryId && categoryId > 0 && categoryId !== CREATE_NEW_ID && subcategoryReady"
+              *ngIf="
+                categoryId && categoryId > 0 && categoryId !== CREATE_NEW_ID && subcategoryReady
+              "
             >
               <mat-label>Question</mat-label>
 
@@ -237,7 +239,13 @@ import { CREATE_NEW_ID } from '../shared/question-edit-dialog.component';
 
       <mat-card>
         <div class="table-wrap">
-          <table mat-table [dataSource]="notesData" matSort matSortActive="updatedAt" matSortDirection="desc">
+          <table
+            mat-table
+            [dataSource]="notesData"
+            matSort
+            matSortActive="updatedAt"
+            matSortDirection="desc"
+          >
             <ng-container matColumnDef="category">
               <th mat-header-cell *matHeaderCellDef mat-sort-header="category">Category</th>
               <td mat-cell *matCellDef="let n">{{ n.question.category.name }}</td>
@@ -260,7 +268,7 @@ import { CREATE_NEW_ID } from '../shared/question-edit-dialog.component';
 
             <ng-container matColumnDef="updatedAt">
               <th mat-header-cell *matHeaderCellDef mat-sort-header="updatedAt">Updated At</th>
-              <td mat-cell *matCellDef="let n">{{ n.updatedAt | date: 'dd MMM yyyy, HH:mm' }}</td>
+              <td mat-cell *matCellDef="let n">{{ n.updatedAt | date: 'dd MMM yyyy, h:mm a' : 'Asia/Kolkata' }}</td>
             </ng-container>
 
             <ng-container matColumnDef="actions">
@@ -498,9 +506,7 @@ export class NotesComponent implements AfterViewInit {
       })
       .subscribe((p) => {
         this.questions =
-          this.subcategoryId === null
-            ? p.content.filter((q) => !q.subcategory)
-            : p.content;
+          this.subcategoryId === null ? p.content.filter((q) => !q.subcategory) : p.content;
       });
   }
 
