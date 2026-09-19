@@ -8,7 +8,9 @@ Prerequisites: Node.js 20+.
 `npm install`
 `npm start`
 
-The development app expects the backend at `http://localhost:8080`. For a simple local setup, add an Angular dev-server proxy or serve the backend through the same origin. A production reverse proxy should route `/api` to the backend.
+API base URL is configured in `src/environments/environment.ts` (local: `http://localhost:8080/api`) and `environment.prod.ts` (production: `https://one-more-revision.onrender.com/api`). Production builds swap in `environment.prod.ts` automatically.
+
+On Render, set `CORS_ALLOWED_ORIGIN` to your Vercel app URL so the browser can call the API.
 
 ## Build
 `npm run build`

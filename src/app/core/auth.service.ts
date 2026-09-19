@@ -2,11 +2,13 @@ import { Injectable, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Router } from '@angular/router';
 import { BehaviorSubject, tap } from 'rxjs';
+import { environment } from '../../environments/environment';
 import { User } from './models';
 @Injectable({ providedIn: 'root' })
 export class AuthService {
   private http = inject(HttpClient);
   private router = inject(Router);
+  private readonly apiUrl = environment.apiUrl;
   private key = 'ikt_token';
   private userSubject = new BehaviorSubject<User | null>(null);
   user$ = this.userSubject.asObservable();
@@ -18,7 +20,7 @@ export class AuthService {
   }
   login(username: string, password: string) {
     return this.http
-      .post<{ token: string; user: User }>('/api/auth/login', { username, password })
+      .post<{ token: string; user: User }>(`${this.apiUrl}/auth/login`, { username, password })
       .pipe(
         tap((r) => {
           localStorage.setItem(this.key, r.token);
@@ -29,7 +31,7 @@ export class AuthService {
   loadMe() {
     if (!this.isLoggedIn()) return;
     this.http
-      .get<User>('/api/auth/me')
+      .get<User>(`${this.apiUrl}/auth/me`)
       .subscribe({ next: (u) => this.userSubject.next(u), error: () => this.logout(false) });
   }
   logout(redirect = true) {

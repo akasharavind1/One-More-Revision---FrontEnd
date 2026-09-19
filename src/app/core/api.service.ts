@@ -1,5 +1,6 @@
 import { Injectable, inject } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
+import { environment } from '../../environments/environment';
 import {
   Category,
   Subcategory,
@@ -12,26 +13,28 @@ import {
 @Injectable({ providedIn: 'root' })
 export class ApiService {
   private http = inject(HttpClient);
+  private readonly apiUrl = environment.apiUrl;
+
   categories() {
-    return this.http.get<Category[]>('/api/categories');
+    return this.http.get<Category[]>(`${this.apiUrl}/categories`);
   }
   createCategory(name: string) {
-    return this.http.post<Category>('/api/categories', { name });
+    return this.http.post<Category>(`${this.apiUrl}/categories`, { name });
   }
   updateCategory(id: number, name: string) {
-    return this.http.put<Category>(`/api/categories/${id}`, { name });
+    return this.http.put<Category>(`${this.apiUrl}/categories/${id}`, { name });
   }
   deleteCategory(id: number) {
-    return this.http.delete<void>(`/api/categories/${id}`);
+    return this.http.delete<void>(`${this.apiUrl}/categories/${id}`);
   }
   subcategories(id?: number | null) {
-    return this.http.get<Subcategory[]>(`/api/categories/${id}/subcategories`);
+    return this.http.get<Subcategory[]>(`${this.apiUrl}/categories/${id}/subcategories`);
   }
   allSubcategories() {
-    return this.http.get<Subcategory[]>('/api/subcategories');
+    return this.http.get<Subcategory[]>(`${this.apiUrl}/subcategories`);
   }
   createSubcategory(categoryId: number, name: string) {
-    return this.http.post<Subcategory>('/api/subcategories', { categoryId, name });
+    return this.http.post<Subcategory>(`${this.apiUrl}/subcategories`, { categoryId, name });
   }
   questions(p: {
     page: number;
@@ -60,55 +63,59 @@ export class ApiService {
       }
     });
 
-    return this.http.get<Page<Question>>('/api/questions', {
+    return this.http.get<Page<Question>>(`${this.apiUrl}/questions`, {
       params: h,
     });
   }
   getQuestion(id: number) {
-    return this.http.get<Question>(`/api/questions/${id}`);
+    return this.http.get<Question>(`${this.apiUrl}/questions/${id}`);
   }
   createQuestion(v: any) {
-    return this.http.post<Question>('/api/questions', v);
+    return this.http.post<Question>(`${this.apiUrl}/questions`, v);
   }
   updateQuestion(id: number, v: any) {
-    return this.http.put<Question>(`/api/questions/${id}`, v);
+    return this.http.put<Question>(`${this.apiUrl}/questions/${id}`, v);
   }
   deleteQuestion(id: number) {
-    return this.http.delete<void>(`/api/questions/${id}`);
+    return this.http.delete<void>(`${this.apiUrl}/questions/${id}`);
   }
   studied(id: number, value: boolean) {
-    return this.http.patch<Question>(`/api/questions/${id}/studied`, { studiedBefore: value });
+    return this.http.patch<Question>(`${this.apiUrl}/questions/${id}/studied`, {
+      studiedBefore: value,
+    });
   }
   practice(id: number, delta: number) {
-    return this.http.patch<Question>(`/api/questions/${id}/practice-count`, { delta });
+    return this.http.patch<Question>(`${this.apiUrl}/questions/${id}/practice-count`, { delta });
   }
   validateImport(file: File) {
     const fd = new FormData();
     fd.append('file', file);
-    return this.http.post<ImportResult>('/api/questions/import/validate', fd);
+    return this.http.post<ImportResult>(`${this.apiUrl}/questions/import/validate`, fd);
   }
   confirmImport(importId: string) {
-    return this.http.post<any>('/api/questions/import/confirm', null, { params: { importId } });
+    return this.http.post<any>(`${this.apiUrl}/questions/import/confirm`, null, {
+      params: { importId },
+    });
   }
   notes(page = 0, size = 20) {
-    return this.http.get<Page<Note>>('/api/workspace-notes', { params: { page, size } });
+    return this.http.get<Page<Note>>(`${this.apiUrl}/workspace-notes`, { params: { page, size } });
   }
   allNotes() {
-    return this.http.get<Note[]>('/api/workspace-notes/all');
+    return this.http.get<Note[]>(`${this.apiUrl}/workspace-notes/all`);
   }
   getNote(id: number) {
-    return this.http.get<Note>(`/api/workspace-notes/${id}`);
+    return this.http.get<Note>(`${this.apiUrl}/workspace-notes/${id}`);
   }
   createNote(questionId: number, answer: string) {
-    return this.http.post<Note>('/api/workspace-notes', { questionId, answer });
+    return this.http.post<Note>(`${this.apiUrl}/workspace-notes`, { questionId, answer });
   }
   updateNote(id: number, questionId: number, answer: string) {
-    return this.http.put<Note>(`/api/workspace-notes/${id}`, { questionId, answer });
+    return this.http.put<Note>(`${this.apiUrl}/workspace-notes/${id}`, { questionId, answer });
   }
   deleteNote(id: number) {
-    return this.http.delete<void>(`/api/workspace-notes/${id}`);
+    return this.http.delete<void>(`${this.apiUrl}/workspace-notes/${id}`);
   }
   dashboard() {
-    return this.http.get<DashboardStats>('/api/dashboard');
+    return this.http.get<DashboardStats>(`${this.apiUrl}/dashboard`);
   }
 }
