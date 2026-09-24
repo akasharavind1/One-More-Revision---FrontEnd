@@ -7,6 +7,7 @@ import {
   Question,
   Page,
   Note,
+  WorkspaceNoteBulkResult,
   DashboardStats,
   ImportResult,
 } from './models';
@@ -108,6 +109,11 @@ export class ApiService {
   }
   createNote(questionId: number, answer: string) {
     return this.http.post<Note>(`${this.apiUrl}/workspace-notes`, { questionId, answer });
+  }
+  bulkSaveNotes(items: { questionId: number; answer: string }[]) {
+    return this.http.post<WorkspaceNoteBulkResult>(`${this.apiUrl}/workspace-notes/bulk`, {
+      items,
+    });
   }
   updateNote(id: number, questionId: number, answer: string) {
     return this.http.put<Note>(`${this.apiUrl}/workspace-notes/${id}`, { questionId, answer });

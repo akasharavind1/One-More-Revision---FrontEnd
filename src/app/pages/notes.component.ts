@@ -22,6 +22,13 @@ import { ConfirmDialogComponent } from '../shared/confirm-dialog.component';
 import { ToastService } from '../shared/toast.service';
 import { CREATE_NEW_ID } from '../shared/question-edit-dialog.component';
 
+interface BulkNoteRow {
+  question?: Question;
+  answer: string;
+  search: string;
+  results: Question[];
+}
+
 @Component({
   standalone: true,
 
@@ -61,6 +68,11 @@ import { CREATE_NEW_ID } from '../shared/question-edit-dialog.component';
           </a>
 
           <!-- CREATE NOTE -->
+          <button mat-stroked-button (click)="startBulk()">
+            <mat-icon>playlist_add</mat-icon>
+            Bulk save
+          </button>
+
           <button mat-flat-button (click)="start()">
             <mat-icon>add</mat-icon>
             Create Workspace Note
@@ -71,6 +83,91 @@ import { CREATE_NEW_ID } from '../shared/question-edit-dialog.component';
       <!-- ========================= -->
       <!-- CREATE / EDIT FORM -->
       <!-- ========================= -->
+
+      <mat-card class="editor bulk-editor" *ngIf="bulkEditing">
+        <mat-card-header>
+          <mat-card-title>Bulk save workspace notes</mat-card-title>
+        </mat-card-header>
+
+        <mat-card-content>
+          <p class="bulk-intro">
+            Add multiple questions and answers, then save them in one step. Existing notes for the
+            same question are updated.
+          </p>
+
+          <div class="bulk-rows">
+            <div class="bulk-row" *ngFor="let row of bulkRows; let i = index">
+              <div class="bulk-row-toolbar">
+                <span class="bulk-row-num">#{{ i + 1 }}</span>
+                <button
+                  mat-icon-button
+                  type="button"
+                  title="Remove row"
+                  (click)="removeBulkRow(i)"
+                  [disabled]="bulkRows.length === 1"
+                >
+                  <mat-icon>close</mat-icon>
+                </button>
+              </div>
+
+              <div class="bulk-row-question" *ngIf="row.question">
+                <div>
+                  <small>{{ row.question.category.name }}</small>
+                  <strong>{{ row.question.question }}</strong>
+                </div>
+                <button mat-button type="button" (click)="clearBulkQuestion(i)">Change</button>
+              </div>
+
+              <ng-container *ngIf="!row.question">
+                <mat-form-field appearance="outline" class="full-width">
+                  <mat-label>Search question</mat-label>
+                  <mat-icon matPrefix>search</mat-icon>
+                  <input
+                    matInput
+                    [(ngModel)]="row.search"
+                    (ngModelChange)="onBulkRowSearch(i, $event)"
+                    placeholder="Type at least 2 characters"
+                  />
+                </mat-form-field>
+
+                <ul class="question-search-results bulk-results" *ngIf="row.results.length">
+                  <li *ngFor="let q of row.results">
+                    <button type="button" class="search-result-btn" (click)="pickBulkQuestion(i, q)">
+                      <span class="search-result-meta">
+                        {{ q.category.name }}
+                        <ng-container *ngIf="q.subcategory"> · {{ q.subcategory.name }}</ng-container>
+                      </span>
+                      <span class="search-result-text">{{ q.question }}</span>
+                    </button>
+                  </li>
+                </ul>
+              </ng-container>
+
+              <mat-form-field appearance="outline" class="full-width">
+                <mat-label>My answer / notes</mat-label>
+                <textarea matInput rows="4" [(ngModel)]="row.answer"></textarea>
+              </mat-form-field>
+            </div>
+          </div>
+
+          <button mat-stroked-button type="button" (click)="addBulkRow()">
+            <mat-icon>add</mat-icon>
+            Add another row
+          </button>
+        </mat-card-content>
+
+        <mat-card-actions align="end">
+          <button mat-button type="button" (click)="cancelBulk()">Cancel</button>
+          <button
+            mat-flat-button
+            type="button"
+            [disabled]="!bulkReadyCount || bulkSaving"
+            (click)="saveBulk()"
+          >
+            Save {{ bulkReadyCount }} note{{ bulkReadyCount === 1 ? '' : 's' }}
+          </button>
+        </mat-card-actions>
+      </mat-card>
 
       <mat-card class="editor" *ngIf="editing">
         <mat-card-header>
@@ -422,6 +519,66 @@ import { CREATE_NEW_ID } from '../shared/question-edit-dialog.component';
       .browse-divider mat-divider {
         flex: 1;
       }
+
+      .bulk-intro {
+        margin: 0 0 16px;
+        color: #6b7280;
+        font-size: 14px;
+      }
+
+      .bulk-rows {
+        display: flex;
+        flex-direction: column;
+        gap: 16px;
+        margin-bottom: 16px;
+      }
+
+      .bulk-row {
+        padding: 14px 16px;
+        border: 1px solid #e5e7eb;
+        border-radius: 10px;
+        background: #fafbfc;
+      }
+
+      .bulk-row-toolbar {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 8px;
+      }
+
+      .bulk-row-num {
+        font-size: 12px;
+        font-weight: 700;
+        color: #64748b;
+      }
+
+      .bulk-row-question {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 12px;
+        margin-bottom: 10px;
+        padding: 10px 12px;
+        background: #fff;
+        border-radius: 8px;
+        border: 1px solid #e2e8f0;
+      }
+
+      .bulk-row-question small {
+        display: block;
+        color: #64748b;
+        margin-bottom: 4px;
+      }
+
+      .bulk-row-question strong {
+        display: block;
+        line-height: 1.4;
+      }
+
+      .bulk-results {
+        margin-bottom: 10px;
+      }
     `,
   ],
 })
@@ -481,6 +638,14 @@ export class NotesComponent implements AfterViewInit {
   questionSearchResults: Question[] = [];
 
   questionSearchLoading = false;
+
+  bulkEditing = false;
+
+  bulkRows: BulkNoteRow[] = [];
+
+  bulkSaving = false;
+
+  private bulkSearchTimers = new Map<number, ReturnType<typeof setTimeout>>();
 
   private questionSearchInput = new Subject<string>();
 
@@ -582,7 +747,111 @@ export class NotesComponent implements AfterViewInit {
     this.refreshNotesTable();
   }
 
+  get bulkReadyCount(): number {
+    return this.bulkRows.filter((r) => r.question && r.answer.trim()).length;
+  }
+
+  startBulk(): void {
+    this.editing = undefined;
+    this.bulkEditing = true;
+    this.bulkRows = [this.newBulkRow(), this.newBulkRow(), this.newBulkRow()];
+  }
+
+  cancelBulk(): void {
+    this.bulkEditing = false;
+    this.bulkRows = [];
+    this.bulkSaving = false;
+  }
+
+  private newBulkRow(): BulkNoteRow {
+    return { question: undefined, answer: '', search: '', results: [] };
+  }
+
+  addBulkRow(): void {
+    this.bulkRows = [...this.bulkRows, this.newBulkRow()];
+  }
+
+  removeBulkRow(index: number): void {
+    if (this.bulkRows.length <= 1) {
+      return;
+    }
+    clearTimeout(this.bulkSearchTimers.get(index));
+    this.bulkSearchTimers.delete(index);
+    this.bulkRows = this.bulkRows.filter((_, i) => i !== index);
+  }
+
+  onBulkRowSearch(index: number, term: string): void {
+    this.bulkRows[index].search = term;
+    clearTimeout(this.bulkSearchTimers.get(index));
+    this.bulkSearchTimers.set(
+      index,
+      setTimeout(() => {
+        const q = term.trim();
+        if (q.length < 2) {
+          this.bulkRows[index].results = [];
+          return;
+        }
+        this.api
+          .questions({ page: 0, size: 15, search: q, sort: 'question,asc' })
+          .subscribe((page) => {
+            this.bulkRows[index].results = page.content;
+          });
+      }, 300),
+    );
+  }
+
+  pickBulkQuestion(index: number, q: Question): void {
+    this.bulkRows[index].question = q;
+    this.bulkRows[index].search = '';
+    this.bulkRows[index].results = [];
+    const existing = this.allNotes.find((n) => n.question.id === q.id);
+    if (existing && !this.bulkRows[index].answer.trim()) {
+      this.bulkRows[index].answer = existing.answer;
+    }
+  }
+
+  clearBulkQuestion(index: number): void {
+    this.bulkRows[index].question = undefined;
+    this.bulkRows[index].search = '';
+    this.bulkRows[index].results = [];
+  }
+
+  saveBulk(): void {
+    const items = this.bulkRows
+      .filter((r) => r.question && r.answer.trim())
+      .map((r) => ({ questionId: r.question!.id, answer: r.answer.trim() }));
+
+    if (!items.length) {
+      return;
+    }
+
+    this.bulkSaving = true;
+    this.api.bulkSaveNotes(items).subscribe({
+      next: (res) => {
+        this.bulkSaving = false;
+        const parts = [];
+        if (res.created) {
+          parts.push(`${res.created} created`);
+        }
+        if (res.updated) {
+          parts.push(`${res.updated} updated`);
+        }
+        if (res.skipped) {
+          parts.push(`${res.skipped} skipped`);
+        }
+        this.toast.show(parts.length ? parts.join(', ') : 'Workspace notes saved');
+        this.cancelBulk();
+        this.load();
+      },
+      error: () => {
+        this.bulkSaving = false;
+        this.toast.show('Bulk save failed');
+      },
+    });
+  }
+
   start() {
+    this.bulkEditing = false;
     this.editing = {};
 
     this.categoryId = undefined;
@@ -785,6 +1054,7 @@ export class NotesComponent implements AfterViewInit {
   }
 
   edit(n: Note) {
+    this.bulkEditing = false;
     this.editing = n;
 
     this.clearQuestionSearch();

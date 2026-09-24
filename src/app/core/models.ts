@@ -72,6 +72,11 @@ export interface Note {
   createdAt: string;
   updatedAt: string;
 }
+export interface WorkspaceNoteBulkResult {
+  created: number;
+  updated: number;
+  skipped: number;
+}
 export interface DashboardStats {
   totalQuestions: number;
   studied: number;
