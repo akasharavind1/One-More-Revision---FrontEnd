@@ -1,4 +1,6 @@
 import { AfterViewInit, Component, ViewChild, inject } from '@angular/core';
+import { Subject, of } from 'rxjs';
+import { debounceTime, distinctUntilChanged, switchMap } from 'rxjs/operators';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
@@ -10,6 +12,7 @@ import { MatSelectModule } from '@angular/material/select';
 import { MatInputModule } from '@angular/material/input';
 import { MatDialog } from '@angular/material/dialog';
 import { MatCardModule } from '@angular/material/card';
+import { MatDividerModule } from '@angular/material/divider';
 import { MatTableDataSource, MatTableModule } from '@angular/material/table';
 import { MatSort, MatSortModule } from '@angular/material/sort';
 
@@ -32,6 +35,7 @@ import { CREATE_NEW_ID } from '../shared/question-edit-dialog.component';
     MatSelectModule,
     MatInputModule,
     MatCardModule,
+    MatDividerModule,
     MatTableModule,
     MatSortModule,
   ],
@@ -77,6 +81,51 @@ import { CREATE_NEW_ID } from '../shared/question-edit-dialog.component';
         </mat-card-header>
 
         <mat-card-content>
+          <div class="question-search-block">
+            <mat-form-field appearance="outline" class="full-width">
+              <mat-label>Search question</mat-label>
+              <mat-icon matPrefix>search</mat-icon>
+              <input
+                matInput
+                [(ngModel)]="questionSearch"
+                (ngModelChange)="questionSearchInput.next($event)"
+                placeholder="Type to find a question across all categories"
+              />
+              <button
+                mat-icon-button
+                matSuffix
+                type="button"
+                *ngIf="questionSearch"
+                (click)="clearQuestionSearch()"
+                aria-label="Clear search"
+              >
+                <mat-icon>close</mat-icon>
+              </button>
+            </mat-form-field>
+
+            <p class="search-hint" *ngIf="questionSearch.trim() && !questionSearchLoading && !questionSearchResults.length">
+              No questions match “{{ questionSearch.trim() }}”.
+            </p>
+
+            <ul class="question-search-results" *ngIf="questionSearchResults.length">
+              <li *ngFor="let q of questionSearchResults">
+                <button type="button" class="search-result-btn" (click)="pickQuestionFromSearch(q)">
+                  <span class="search-result-meta">
+                    {{ q.category.name }}
+                    <ng-container *ngIf="q.subcategory"> · {{ q.subcategory.name }}</ng-container>
+                  </span>
+                  <span class="search-result-text">{{ q.question }}</span>
+                </button>
+              </li>
+            </ul>
+          </div>
+
+          <div class="browse-divider">
+            <mat-divider></mat-divider>
+            <span>Or browse by category</span>
+            <mat-divider></mat-divider>
+          </div>
+
           <!-- CATEGORY + QUESTION -->
 
           <div class="form-grid">
@@ -298,6 +347,83 @@ import { CREATE_NEW_ID } from '../shared/question-edit-dialog.component';
       </mat-card>
     </div>
   `,
+
+  styles: [
+    `
+      .question-search-block {
+        margin-top: 8px;
+      }
+
+      .search-hint {
+        margin: -4px 0 8px;
+        color: #6b7280;
+        font-size: 13px;
+      }
+
+      .question-search-results {
+        list-style: none;
+        margin: 0 0 16px;
+        padding: 0;
+        border: 1px solid #e5e7eb;
+        border-radius: 10px;
+        max-height: 280px;
+        overflow: auto;
+        background: #fff;
+      }
+
+      .search-result-btn {
+        display: flex;
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 4px;
+        width: 100%;
+        padding: 12px 14px;
+        border: none;
+        border-bottom: 1px solid #f1f5f9;
+        background: transparent;
+        text-align: left;
+        cursor: pointer;
+      }
+
+      .search-result-btn:hover {
+        background: #f8fafc;
+      }
+
+      .question-search-results li:last-child .search-result-btn {
+        border-bottom: none;
+      }
+
+      .search-result-meta {
+        font-size: 11px;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.02em;
+        color: #64748b;
+      }
+
+      .search-result-text {
+        font-size: 14px;
+        color: #111827;
+        line-height: 1.4;
+      }
+
+      .browse-divider {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        margin: 8px 0 4px;
+        color: #94a3b8;
+        font-size: 12px;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+      }
+
+      .browse-divider mat-divider {
+        flex: 1;
+      }
+    `,
+  ],
 })
 export class NotesComponent implements AfterViewInit {
   private api = inject(ApiService);
@@ -350,8 +476,50 @@ export class NotesComponent implements AfterViewInit {
 
   newSubcategoryName = '';
 
+  questionSearch = '';
+
+  questionSearchResults: Question[] = [];
+
+  questionSearchLoading = false;
+
+  private questionSearchInput = new Subject<string>();
+
+  private questionSearchSub = this.questionSearchInput.pipe(
+    debounceTime(300),
+    distinctUntilChanged(),
+    switchMap((term) => {
+      const q = term.trim();
+      if (q.length < 2) {
+        return of(null);
+      }
+      this.questionSearchLoading = true;
+      return this.api.questions({
+        page: 0,
+        size: 25,
+        search: q,
+        sort: 'question,asc',
+      });
+    }),
+  );
+
   ngOnInit() {
     this.load();
+
+    this.questionSearchSub.subscribe({
+      next: (page) => {
+        if (page === null) {
+          this.questionSearchResults = [];
+          this.questionSearchLoading = false;
+          return;
+        }
+        this.questionSearchResults = page.content;
+        this.questionSearchLoading = false;
+      },
+      error: () => {
+        this.questionSearchLoading = false;
+        this.questionSearchResults = [];
+      },
+    });
   }
 
   ngAfterViewInit(): void {
@@ -436,6 +604,52 @@ export class NotesComponent implements AfterViewInit {
     this.subcategories = [];
 
     this.subcategoryReady = false;
+
+    this.clearQuestionSearch();
+  }
+
+  clearQuestionSearch(): void {
+    this.questionSearch = '';
+    this.questionSearchResults = [];
+    this.questionSearchLoading = false;
+  }
+
+  pickQuestionFromSearch(q: Question): void {
+    this.categoryId = q.category.id;
+    this.subcategoryId = q.subcategory?.id ?? null;
+    this.questionId = q.id;
+    this.selectedQuestion = q;
+
+    const existing = this.allNotes.find((n) => n.question.id === q.id);
+    if (existing && (!this.editing || !('id' in this.editing && this.editing.id))) {
+      this.answer = existing.answer;
+      this.editing = existing;
+    } else if (!this.editing || !('id' in this.editing && this.editing.id)) {
+      this.answer = existing?.answer ?? this.answer;
+    }
+
+    this.newCategory = false;
+    this.subcategoryReady = true;
+
+    this.api.subcategories(this.categoryId).subscribe((s) => {
+      this.subcategories = s;
+    });
+
+    this.api
+      .questions({
+        page: 0,
+        size: 100,
+        categoryId: this.categoryId,
+        subcategoryId: this.subcategoryId ?? undefined,
+        sort: 'question,asc',
+      })
+      .subscribe((p) => {
+        this.questions =
+          this.subcategoryId === null ? p.content.filter((item) => !item.subcategory) : p.content;
+      });
+
+    this.clearQuestionSearch();
+    this.toast.show('Question selected — add your answer and save');
   }
 
   cancel() {
@@ -572,6 +786,8 @@ export class NotesComponent implements AfterViewInit {
 
   edit(n: Note) {
     this.editing = n;
+
+    this.clearQuestionSearch();
 
     this.categoryId = n.question.category.id;
 

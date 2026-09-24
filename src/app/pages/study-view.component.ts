@@ -6,7 +6,6 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatCardModule } from '@angular/material/card';
 import { MatDividerModule } from '@angular/material/divider';
-
 import { ApiService } from '../core/api.service';
 import { Note } from '../core/models';
 
@@ -88,6 +87,7 @@ interface StudyGroup {
       <!-- ========================= -->
 
       <div class="study-content" *ngIf="!loading && groups.length">
+        <div class="study-layout">
         <!-- SUMMARY -->
         <div class="study-summary">
           <div class="summary-item">
@@ -115,11 +115,28 @@ interface StudyGroup {
           </div>
         </div>
 
+        <nav class="category-quick-nav" aria-label="Jump to category">
+          <button
+            type="button"
+            *ngFor="let group of groups; let gi = index"
+            class="category-quick-btn"
+            (click)="scrollToCategory(group.category)"
+          >
+            <span class="cat-num">{{ gi + 1 }}</span>
+            {{ group.category }}
+            <span class="cat-count">{{ group.notes.length }}</span>
+          </button>
+        </nav>
+
         <!-- ========================= -->
         <!-- CATEGORY -->
         <!-- ========================= -->
 
-        <section class="study-category" *ngFor="let group of groups">
+        <section
+          class="study-category"
+          *ngFor="let group of groups"
+          [attr.id]="'study-cat-' + categorySlug(group.category)"
+        >
           <!-- CATEGORY HEADER -->
 
           <div class="category-header">
@@ -143,44 +160,47 @@ interface StudyGroup {
               *ngFor="let note of group.notes; let i = index"
               [attr.id]="'study-q-' + note.question.id"
             >
-              <!-- QUESTION TOP -->
+              <div class="study-card-body">
+                <div class="study-card-question">
+                  <div class="question-top">
+                    <div class="question-number">
+                      {{ i + 1 }}
+                    </div>
 
-              <div class="question-top">
-                <div class="question-number">
-                  {{ i + 1 }}
-                </div>
+                    <div class="question-heading">
+                      <div class="metadata">
+                        <span class="subcategory">
+                          {{ note.question.subcategory?.name || 'General' }}
+                        </span>
+                      </div>
 
-                <div class="question-heading">
-                  <div class="metadata">
-                    <span class="subcategory">
-                      {{ note.question.subcategory?.name || 'General' }}
-                    </span>
+                      <h3>
+                        {{ note.question.question }}
+                      </h3>
+                    </div>
                   </div>
-
-                  <h3>
-                    {{ note.question.question }}
-                  </h3>
-                </div>
-              </div>
-
-              <mat-divider></mat-divider>
-
-              <!-- ANSWER -->
-
-              <div class="answer-section">
-                <div class="answer-heading">
-                  <mat-icon> lightbulb </mat-icon>
-
-                  <span> My Answer </span>
                 </div>
 
-                <div class="answer">
-                  {{ note.answer }}
+                <mat-divider></mat-divider>
+
+                <div class="study-card-answer">
+                  <div class="answer-section">
+                    <div class="answer-heading">
+                      <mat-icon> lightbulb </mat-icon>
+
+                      <span> My Answer </span>
+                    </div>
+
+                    <div class="answer">
+                      {{ note.answer }}
+                    </div>
+                  </div>
                 </div>
               </div>
             </mat-card>
           </div>
         </section>
+        </div>
       </div>
     </div>
   `,
@@ -188,9 +208,62 @@ interface StudyGroup {
   styles: [
     `
       .study-page {
-        max-width: 1280px;
-        margin: 0 auto;
+        max-width: none;
+        width: 100%;
+        margin: 0;
         padding: 16px 20px 32px;
+        box-sizing: border-box;
+      }
+
+      .study-layout {
+        width: 100%;
+        max-width: none;
+      }
+
+      .category-quick-nav {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        margin-bottom: 18px;
+      }
+
+      .category-quick-btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding: 8px 14px;
+        border: 1px solid #e2e8f0;
+        border-radius: 999px;
+        background: #fff;
+        font: inherit;
+        font-size: 13px;
+        color: #111827;
+        cursor: pointer;
+      }
+
+      .category-quick-btn:hover {
+        background: #f8fafc;
+        border-color: #cbd5e1;
+      }
+
+      .category-quick-btn .cat-num {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-width: 22px;
+        height: 22px;
+        padding: 0 6px;
+        border-radius: 999px;
+        background: #2563eb;
+        color: #fff;
+        font-size: 11px;
+        font-weight: 700;
+      }
+
+      .category-quick-btn .cat-count {
+        font-size: 11px;
+        color: #94a3b8;
+        font-weight: 600;
       }
 
       /* =========================
@@ -336,18 +409,33 @@ interface StudyGroup {
        ========================= */
 
       .questions {
-        display: grid;
-        grid-template-columns: repeat(2, minmax(0, 1fr));
-        gap: 10px;
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
       }
 
       .study-card {
-        padding: 16px 18px;
+        padding: 0;
         border: 1px solid #e2e8f0;
         border-radius: 12px;
         box-shadow: none;
         background: white;
         min-height: 0;
+        overflow: hidden;
+      }
+
+      .study-card-body {
+        display: flex;
+        flex-direction: column;
+      }
+
+      .study-card-question {
+        padding: 18px 22px;
+        background: #fafbfc;
+      }
+
+      .study-card-answer {
+        padding: 16px 22px 22px;
       }
 
       .question-top {
@@ -411,7 +499,7 @@ interface StudyGroup {
        ========================= */
 
       .answer-section {
-        margin-top: 12px;
+        margin-top: 0;
       }
 
       .answer-heading {
@@ -431,15 +519,21 @@ interface StudyGroup {
       }
 
       .answer {
-        padding: 14px 16px;
+        display: block;
+        width: 100%;
+        box-sizing: border-box;
+        padding: 16px 20px;
         background: #f8fafc;
         border: 1px solid #edf0f4;
         border-radius: 10px;
         white-space: pre-wrap;
+        word-break: normal;
+        overflow-wrap: break-word;
         line-height: 1.6;
         color: #374151;
         font-size: 15px;
-        min-height: 4.8em;
+        min-height: 3em;
+        text-align: left;
       }
 
       /* =========================
@@ -478,10 +572,6 @@ interface StudyGroup {
        ========================= */
 
       @media (max-width: 720px) {
-        .questions {
-          grid-template-columns: 1fr;
-        }
-
         .study-page {
           padding: 20px 16px 40px;
         }
@@ -599,6 +689,22 @@ export class StudyViewComponent {
 
   categoryIndex(group: StudyGroup): number {
     return this.groups.indexOf(group) + 1;
+  }
+
+  categorySlug(category: string): string {
+    return category.replace(/\s+/g, '-').replace(/[^a-zA-Z0-9-_]/g, '').toLowerCase();
+  }
+
+  scrollToCategory(category: string): void {
+    document
+      .getElementById(`study-cat-${this.categorySlug(category)}`)
+      ?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+
+  scrollToQuestion(questionId: number): void {
+    document
+      .getElementById(`study-q-${questionId}`)
+      ?.scrollIntoView({ behavior: 'smooth', block: 'center' });
   }
 
   private scrollToQuestionIfNeeded(): void {
